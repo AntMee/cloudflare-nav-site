@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-nav-site",
+  "main": "src/worker/index.js",
+  "compatibility_date": "2026-06-15",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "SITE_NAME": "CloudNav",
+    "ADMIN_USERNAME": "admin",
+    "CACHE_TTL_SECONDS": "300",
+    "JWT_TTL_SECONDS": "43200"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nav_db",
+      "database_id": "replace-with-your-d1-database-id",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "replace-with-your-kv-namespace-id"
+    }
+  ]
+}
