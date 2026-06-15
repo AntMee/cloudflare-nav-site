@@ -2,17 +2,17 @@
 
 CloudNav 是一个个人网址导航站：前台公开访问，后台仅单管理员登录维护。项目使用 React/Vite 构建前端，Cloudflare Workers 提供 API 和静态资源托管，D1 存储分类、链接和设置，KV 用于公开目录缓存。
 
+本项目不使用生图功能。背景图片只来自用户上传或外部 URL。
+
 ## 功能
 
 - 前台一级分类 Tab 浏览，支持大卡片链接展示。
-- 链接 favicon 自动展示，并提供失败回退。
-- 背景支持渐变、背景图 URL、上传图片转 Data URL。
+- 链接 favicon 自动展示，加载失败时回退为站名文字。
+- 背景支持默认渐变、背景图 URL、上传图片转 Data URL。
 - 后台支持分类管理、链接管理、站点设置和 JSON 备份导入/导出。
-- 不使用生图功能，背景图片仅来自用户上传或外部 URL。
+- 单管理员登录，账号使用变量，密码和 JWT 签名密钥使用 Cloudflare Secret。
 
 ## 本地开发
-
-安装依赖并构建前端：
 
 ```bash
 npm install
@@ -21,18 +21,36 @@ npx wrangler d1 migrations apply nav_db --local
 npm run dev:worker
 ```
 
-`npm run dev` 只启动 Vite 前端开发服务器，适合调试 React 页面。需要调用 Worker API、D1、KV 或完整本地环境时，请先构建并使用 `npm run dev:worker`，它会运行 `wrangler dev`。
+`npm run dev` 只启动 Vite 前端开发服务器。需要调用 Worker API、D1、KV 或完整本地环境时，请使用 `npm run dev:worker`。
 
-## 创建 Cloudflare 资源
+## Cloudflare 资源
 
-首次部署前创建 D1 数据库和 KV 命名空间：
+部署脚本会自动准备 Cloudflare 资源：
+
+```bash
+npm run prepare:cloudflare
+```
+
+它会：
+
+- 查找或创建 D1 数据库，默认名称 `nav_db`
+- 查找或创建 KV namespace，默认名称 `cloudflare_nav_cache`
+- 把真实 `database_id` 和 KV `id` 写回 `wrangler.jsonc`
+
+可以用环境变量覆盖资源名：
+
+```bash
+D1_NAME=my_nav_db KV_NAME=my_nav_cache npm run prepare:cloudflare
+```
+
+也可以手动创建：
 
 ```bash
 npx wrangler d1 create nav_db
-npx wrangler kv namespace create NAV_CACHE
+npx wrangler kv namespace create cloudflare_nav_cache
 ```
 
-把 `d1 create` 返回的 `database_id` 填入 `wrangler.jsonc` 的 `d1_databases[0].database_id`，把 KV 命名空间返回的 `id` 填入 `wrangler.jsonc` 的 `kv_namespaces[0].id`。
+然后把返回的 `database_id` 和 KV `id` 填入 `wrangler.jsonc`。
 
 ## 变量和密钥
 
@@ -53,7 +71,14 @@ npx wrangler secret put JWT_SECRET
 npm run deploy
 ```
 
-该脚本会先执行 `npm run build`，然后远程应用 D1 migration，最后执行 `wrangler deploy --keep-vars` 部署 Worker。
+该脚本会依次执行：
+
+1. `npm run build`
+2. `npm run prepare:cloudflare`
+3. `wrangler d1 migrations apply nav_db --remote`
+4. `wrangler deploy --keep-vars`
+
+如果使用 GitHub/Cloudflare 自动部署，构建环境需要有权限运行 Wrangler 并访问你的 Cloudflare 账号。
 
 ## JSON 备份
 
