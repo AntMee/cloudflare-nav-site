@@ -14,12 +14,6 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
-  "vars": {
-    "SITE_NAME": "CloudNav",
-    "ADMIN_USERNAME": "admin",
-    "CACHE_TTL_SECONDS": "300",
-    "JWT_TTL_SECONDS": "43200"
-  },
   "d1_databases": [
     {
       "binding": "DB",

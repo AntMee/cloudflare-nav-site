@@ -103,7 +103,11 @@ async function adminLogin(request, env) {
   const payload = await readJson(request);
   const username = cleanText(payload.username, MAX_TEXT_LENGTH);
   const password = String(payload.password ?? "");
-  const expectedUsername = env.ADMIN_USERNAME || "admin";
+  if (!env.ADMIN_USERNAME) {
+    throw httpError("Authentication is not configured", 503);
+  }
+
+  const expectedUsername = env.ADMIN_USERNAME;
 
   if (!constantTimeStringEqual(username, expectedUsername) || !constantTimeStringEqual(password, env.ADMIN_PASSWORD)) {
     throw httpError("Unauthorized", 401);
