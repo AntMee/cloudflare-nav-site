@@ -11,6 +11,29 @@ const MAX_BACKGROUND_DATA_URL_LENGTH = 1153434;
 const MAX_IMPORT_CATEGORIES = 200;
 const MAX_IMPORT_LINKS = 2000;
 const MIN_JWT_SECRET_LENGTH = 32;
+const MAX_LOGIN_FAILURES = 8;
+const LOGIN_FAILURE_WINDOW_SECONDS = 900;
+const SECURITY_HEADERS = {
+  "content-security-policy": [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests"
+  ].join("; "),
+  "cross-origin-opener-policy": "same-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+  "referrer-policy": "no-referrer",
+  "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY"
+};
 const DEFAULT_SETTINGS = {
   title: "CloudNav",
   backgroundMode: "gradient",
@@ -97,11 +120,11 @@ function matchRoute(method, pathname) {
 async function assetFallback(request, env) {
   const response = await env.ASSETS.fetch(request);
   if (response.status !== 404 || !["GET", "HEAD"].includes(request.method)) {
-    return response;
+    return withSecurityHeaders(response);
   }
 
   const indexUrl = new URL("/index.html", request.url);
-  return env.ASSETS.fetch(new Request(indexUrl, request));
+  return withSecurityHeaders(await env.ASSETS.fetch(new Request(indexUrl, request)));
 }
 
 async function getPublicSite(_request, env, ctx) {
@@ -122,11 +145,15 @@ async function adminLogin(request, env) {
   const username = cleanText(payload.username, MAX_TEXT_LENGTH);
   const password = String(payload.password ?? "");
   const expectedUsername = env.ADMIN_USERNAME;
+  const loginKey = loginFailureKey(request, username);
+  await assertLoginNotLimited(env, loginKey);
 
   if (!constantTimeStringEqual(username, expectedUsername) || !constantTimeStringEqual(password, env.ADMIN_PASSWORD)) {
+    await recordLoginFailure(env, loginKey);
     throw httpError("Unauthorized", 401);
   }
 
+  await clearLoginFailures(env, loginKey);
   const ttl = jwtTtl(env);
   const token = await signJwt({ sub: username }, env.JWT_SECRET, ttl);
   return json(
@@ -392,6 +419,30 @@ async function loadLinks(env, publicOnly) {
 
 async function clearPublicCache(env) {
   await env.KV.delete(PUBLIC_CACHE_KEY);
+}
+
+async function assertLoginNotLimited(env, key) {
+  const failures = Number(await env.KV.get(key) || 0);
+  if (Number.isInteger(failures) && failures >= MAX_LOGIN_FAILURES) {
+    throw httpError("Too many login attempts", 429);
+  }
+}
+
+async function recordLoginFailure(env, key) {
+  const failures = Number(await env.KV.get(key) || 0);
+  const nextFailures = Number.isInteger(failures) ? failures + 1 : 1;
+  await env.KV.put(key, String(nextFailures), {
+    expirationTtl: LOGIN_FAILURE_WINDOW_SECONDS
+  });
+}
+
+async function clearLoginFailures(env, key) {
+  await env.KV.delete(key);
+}
+
+function loginFailureKey(request, username) {
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  return `login-fail:v1:${ip}:${username || "unknown"}`;
 }
 
 function normalizeCategoryPayload(payload) {
@@ -731,9 +782,21 @@ function jwtTtl(env) {
 }
 
 function json(data, status = 200, headers = {}) {
-  return new Response(JSON.stringify(data), {
+  return withSecurityHeaders(new Response(JSON.stringify(data), {
     status,
     headers: { ...JSON_HEADERS, ...headers }
+  }));
+}
+
+function withSecurityHeaders(response) {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
   });
 }
 
