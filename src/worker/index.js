@@ -6,7 +6,11 @@ const SESSION_COOKIE = "cloudnav_session";
 const PUBLIC_CACHE_KEY = "public-site:v1";
 const MAX_TEXT_LENGTH = 80;
 const MAX_URL_LENGTH = 2048;
+const MAX_JSON_BODY_BYTES = 1572864;
 const MAX_BACKGROUND_DATA_URL_LENGTH = 1153434;
+const MAX_IMPORT_CATEGORIES = 200;
+const MAX_IMPORT_LINKS = 2000;
+const MIN_JWT_SECRET_LENGTH = 32;
 const DEFAULT_SETTINGS = {
   title: "CloudNav",
   backgroundMode: "gradient",
@@ -14,6 +18,8 @@ const DEFAULT_SETTINGS = {
   backgroundDataUrl: "",
   gradientPreset: "aurora"
 };
+const GRADIENT_PRESETS = new Set(["aurora", "sunset", "ocean", "forest", "dusk"]);
+const ALLOWED_DATA_URL_PATTERN = /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=]+$/i;
 const DEFAULT_CATEGORIES = [
   { id: 1, name: "常用网站", sortOrder: 10, isEnabled: true },
   { id: 2, name: "AI工具", sortOrder: 20, isEnabled: true },
@@ -42,6 +48,7 @@ export default {
         return json({ error: "Not found" }, 404);
       }
 
+      enforceSameOriginForAdminWrite(request, url);
       return await route.handler(request, env, ctx, route.params);
     } catch (error) {
       if (error && error.status) {
@@ -109,17 +116,11 @@ async function getPublicSite(_request, env, ctx) {
 }
 
 async function adminLogin(request, env) {
-  if (!env.ADMIN_PASSWORD || !env.JWT_SECRET) {
-    throw httpError("Authentication is not configured", 503);
-  }
+  assertAuthConfigured(env);
 
   const payload = await readJson(request);
   const username = cleanText(payload.username, MAX_TEXT_LENGTH);
   const password = String(payload.password ?? "");
-  if (!env.ADMIN_USERNAME) {
-    throw httpError("Authentication is not configured", 503);
-  }
-
   const expectedUsername = env.ADMIN_USERNAME;
 
   if (!constantTimeStringEqual(username, expectedUsername) || !constantTimeStringEqual(password, env.ADMIN_PASSWORD)) {
@@ -191,8 +192,14 @@ async function updateCategory(request, env, ctx, params) {
 async function deleteCategory(request, env, ctx, params) {
   await requireAdmin(request, env);
   const id = parseId(params[0], "category id");
-  const result = await env.DB.prepare("DELETE FROM categories WHERE id = ?").bind(id).run();
-  if (!result.meta || result.meta.changes === 0) throw httpError("Category not found", 404);
+  const existing = await env.DB.prepare("SELECT id FROM categories WHERE id = ?").bind(id).first();
+  if (!existing) throw httpError("Category not found", 404);
+  const result = await env.DB.batch([
+    env.DB.prepare("DELETE FROM links WHERE category_id = ?").bind(id),
+    env.DB.prepare("DELETE FROM categories WHERE id = ?").bind(id)
+  ]);
+  const categoryDelete = result[1];
+  if (!categoryDelete.meta || categoryDelete.meta.changes === 0) throw httpError("Category not found", 404);
   ctx.waitUntil(clearPublicCache(env));
   return json({ ok: true });
 }
@@ -248,46 +255,50 @@ async function importState(request, env, ctx) {
   const settings = normalizeSettingsPayload(payload.settings);
   const categories = normalizeImportArray(payload.categories, normalizeCategoryPayload, "categories");
   const links = normalizeImportArray(payload.links, normalizeLinkPayload, "links");
+  validateImportGraph(categories, links);
 
-  await env.DB.prepare("DELETE FROM links").run();
-  await env.DB.prepare("DELETE FROM categories").run();
-  await env.DB.prepare("DELETE FROM settings").run();
-  await saveSettings(env, settings);
+  const statements = [
+    env.DB.prepare("DELETE FROM links"),
+    env.DB.prepare("DELETE FROM categories"),
+    env.DB.prepare("DELETE FROM settings"),
+    settingsStatement(env, settings)
+  ];
 
   for (const category of categories) {
     if (category.id) {
-      await env.DB.prepare(
+      statements.push(env.DB.prepare(
         `INSERT INTO categories (id, name, sort_order, is_enabled, created_at, updated_at)
          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
-      ).bind(category.id, category.name, category.sortOrder, category.isEnabled).run();
+      ).bind(category.id, category.name, category.sortOrder, category.isEnabled));
     } else {
-      await env.DB.prepare(
+      statements.push(env.DB.prepare(
         `INSERT INTO categories (name, sort_order, is_enabled, created_at, updated_at)
          VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
-      ).bind(category.name, category.sortOrder, category.isEnabled).run();
+      ).bind(category.name, category.sortOrder, category.isEnabled));
     }
   }
 
   for (const link of links) {
     if (link.id) {
-      await env.DB.prepare(
+      statements.push(env.DB.prepare(
         `INSERT INTO links (id, category_id, title, url, sort_order, is_enabled, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
-      ).bind(link.id, link.categoryId, link.title, link.url, link.sortOrder, link.isEnabled).run();
+      ).bind(link.id, link.categoryId, link.title, link.url, link.sortOrder, link.isEnabled));
     } else {
-      await env.DB.prepare(
+      statements.push(env.DB.prepare(
         `INSERT INTO links (category_id, title, url, sort_order, is_enabled, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
-      ).bind(link.categoryId, link.title, link.url, link.sortOrder, link.isEnabled).run();
+      ).bind(link.categoryId, link.title, link.url, link.sortOrder, link.isEnabled));
     }
   }
 
+  await env.DB.batch(statements);
   ctx.waitUntil(clearPublicCache(env));
   return json({ ok: true });
 }
 
 async function requireAdmin(request, env) {
-  if (!env.JWT_SECRET) throw httpError("Authentication is not configured", 503);
+  assertAuthConfigured(env);
 
   const token = getCookie(request.headers.get("cookie") || "", SESSION_COOKIE);
   if (!token) throw httpError("Unauthorized", 401);
@@ -343,11 +354,15 @@ async function loadSettings(env) {
 }
 
 async function saveSettings(env, settings) {
-  await env.DB.prepare(
+  await settingsStatement(env, settings).run();
+}
+
+function settingsStatement(env, settings) {
+  return env.DB.prepare(
     `INSERT INTO settings (key, value, updated_at)
      VALUES ('site', ?, CURRENT_TIMESTAMP)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP`
-  ).bind(JSON.stringify(settings)).run();
+  ).bind(JSON.stringify(settings));
 }
 
 async function loadCategories(env, publicOnly) {
@@ -423,19 +438,58 @@ function normalizeSettingsPayload(payload) {
   if (backgroundDataUrl.length > MAX_BACKGROUND_DATA_URL_LENGTH) {
     throw httpError("backgroundDataUrl is too large", 413);
   }
+  if (backgroundDataUrl && !ALLOWED_DATA_URL_PATTERN.test(backgroundDataUrl)) {
+    throw httpError("backgroundDataUrl must be a jpg, png, or webp data URL", 400);
+  }
+
+  const gradientPreset = cleanText(payload.gradientPreset, MAX_TEXT_LENGTH) || DEFAULT_SETTINGS.gradientPreset;
+  if (!GRADIENT_PRESETS.has(gradientPreset)) {
+    throw httpError("Invalid gradientPreset", 400);
+  }
 
   return {
     title: cleanText(payload.title, MAX_TEXT_LENGTH) || DEFAULT_SETTINGS.title,
     backgroundMode,
     backgroundUrl,
     backgroundDataUrl,
-    gradientPreset: cleanText(payload.gradientPreset, MAX_TEXT_LENGTH) || DEFAULT_SETTINGS.gradientPreset
+    gradientPreset
   };
 }
 
 function normalizeImportArray(value, normalizer, fieldName) {
   if (!Array.isArray(value)) throw httpError(`${fieldName} must be an array`, 400);
+  if (fieldName === "categories" && value.length > MAX_IMPORT_CATEGORIES) {
+    throw httpError("Too many categories", 413);
+  }
+  if (fieldName === "links" && value.length > MAX_IMPORT_LINKS) {
+    throw httpError("Too many links", 413);
+  }
   return value.map((item) => normalizer(item));
+}
+
+function validateImportGraph(categories, links) {
+  const categoryIds = new Set();
+  for (const category of categories) {
+    if (category.id) {
+      if (categoryIds.has(category.id)) throw httpError("Duplicate category id in import", 400);
+      categoryIds.add(category.id);
+    }
+  }
+
+  if (!categoryIds.size && links.length) {
+    throw httpError("Imported links require category ids", 400);
+  }
+
+  const linkIds = new Set();
+  for (const link of links) {
+    if (link.id) {
+      if (linkIds.has(link.id)) throw httpError("Duplicate link id in import", 400);
+      linkIds.add(link.id);
+    }
+    if (!categoryIds.has(link.categoryId)) {
+      throw httpError("Imported link references a missing category", 400);
+    }
+  }
 }
 
 function formatCategory(row) {
@@ -468,10 +522,38 @@ async function readJson(request) {
     throw httpError("Expected application/json", 415);
   }
 
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (Number.isFinite(contentLength) && contentLength > MAX_JSON_BODY_BYTES) {
+    throw httpError("Request body is too large", 413);
+  }
+
+  const text = await request.text();
+  if (new TextEncoder().encode(text).length > MAX_JSON_BODY_BYTES) {
+    throw httpError("Request body is too large", 413);
+  }
+
   try {
-    return await request.json();
+    return JSON.parse(text);
   } catch {
     throw httpError("Invalid JSON", 400);
+  }
+}
+
+function enforceSameOriginForAdminWrite(request, url) {
+  if (!url.pathname.startsWith("/api/admin/")) return;
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method)) return;
+
+  const origin = request.headers.get("origin");
+  if (!origin) throw httpError("Missing Origin header", 403);
+  if (origin !== url.origin) throw httpError("Invalid Origin header", 403);
+}
+
+function assertAuthConfigured(env) {
+  if (!env.ADMIN_USERNAME || !env.ADMIN_PASSWORD || !env.JWT_SECRET) {
+    throw httpError("Authentication is not configured", 503);
+  }
+  if (String(env.JWT_SECRET).length < MIN_JWT_SECRET_LENGTH) {
+    throw httpError("JWT_SECRET must be at least 32 characters", 503);
   }
 }
 
