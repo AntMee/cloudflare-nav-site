@@ -14,19 +14,14 @@
 
 ## Cloudflare 配置
 
-用户自行在 Cloudflare 配置变量和密钥，仓库不内置账号或密钥。
+### 1. 在 Settings 添加如下变量和密钥
 
-变量：
-
-- `ADMIN_USERNAME`：管理员账号，必填
-- `SITE_NAME`：站点名，可选
-- `CACHE_TTL_SECONDS`：KV 缓存秒数，可选，默认 300
-- `JWT_TTL_SECONDS`：后台登录有效期，可选，默认 43200
-
-密钥，需要用户手动创建：
-
-- `ADMIN_PASSWORD`：后台登录密码，必填
-- `JWT_SECRET`：JWT 签名密钥，必填
+- `ADMIN_USERNAME`：管理员账号，必填。
+- `ADMIN_PASSWORD`：后台登录密码，必填。
+- `JWT_SECRET`：32 位以上随机 JWT 签名密钥，必填。
+- `SITE_NAME`：站点名，可选，默认 CloudNav。
+- `CACHE_TTL_SECONDS`：KV 缓存秒数，可选，默认 300。
+- `JWT_TTL_SECONDS`：后台登录有效期秒数，可选，默认 43200。
 
 ```bash
 npx wrangler secret put ADMIN_PASSWORD
