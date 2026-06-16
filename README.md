@@ -21,6 +21,8 @@ npx wrangler d1 migrations apply nav_db --local
 npm run dev:worker
 ```
 
+`npm run build` 会先构建前端，再准备 Cloudflare D1/KV 资源。只想本地构建前端时可以使用 `npm run build:app`。
+
 `npm run dev` 只启动 Vite 前端开发服务器。需要调用 Worker API、D1、KV 或完整本地环境时，请使用 `npm run dev:worker`。
 
 ## Cloudflare 资源
@@ -74,11 +76,12 @@ npm run deploy
 该脚本会依次执行：
 
 1. `npm run build`
-2. `npm run prepare:cloudflare`
-3. `wrangler d1 migrations apply nav_db --remote`
-4. `wrangler deploy --keep-vars`
+2. `wrangler d1 migrations apply nav_db --remote`
+3. `wrangler deploy --keep-vars`
 
 如果使用 GitHub/Cloudflare 自动部署，构建环境需要有权限运行 Wrangler 并访问你的 Cloudflare 账号。
+
+如果平台的 Deploy command 固定为 `npx wrangler deploy`，也可以正常工作，但 Build command 必须是 `npm run build`，因为 D1/KV 自动创建已经挂在 build 阶段。
 
 ## JSON 备份
 
