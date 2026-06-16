@@ -35,7 +35,9 @@ npx wrangler secret put JWT_SECRET
 Cloudflare 自动部署建议：
 
 - Build command: `npm run build`
-- Deploy command: `npx wrangler deploy`
+- Deploy command: `npx wrangler deploy --keep-vars`
+
+必须带 `--keep-vars`，否则重新部署时可能清空 Cloudflare Dashboard 里手动配置的变量与密钥。
 
 `npm run build` 会执行：
 
@@ -51,6 +53,8 @@ Cloudflare 自动部署建议：
 npm install
 npm run deploy
 ```
+
+`npm run deploy` 已经内置 `--keep-vars`。
 
 ## 本地开发
 

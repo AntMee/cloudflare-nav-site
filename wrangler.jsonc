@@ -3,6 +3,7 @@
   "name": "cloudflare-nav-site",
   "main": "src/worker/index.js",
   "compatibility_date": "2026-06-15",
+  "keep_vars": true,
   "compatibility_flags": [
     "nodejs_compat"
   ],
