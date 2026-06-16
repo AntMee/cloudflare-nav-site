@@ -43,7 +43,7 @@ function groupLinksByCategory(links) {
   }, new Map());
 }
 
-export default function Home() {
+export default function Home({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [site, setSite] = useState(null);
@@ -122,7 +122,15 @@ export default function Home() {
       <section className="nav-panel" aria-busy={loading}>
         {panelContent}
       </section>
-      <a className="admin-entry" href="/admin" aria-label="进入管理后台">
+      <a
+        className="admin-entry"
+        href="/admin"
+        aria-label="进入管理后台"
+        onClick={(event) => {
+          event.preventDefault();
+          onNavigate("/admin");
+        }}
+      >
         管理
       </a>
     </main>
