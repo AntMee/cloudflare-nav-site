@@ -4,6 +4,14 @@ const JSON_HEADERS = {
 
 const SESSION_COOKIE = "cloudnav_session";
 const PUBLIC_CACHE_KEY = "public-site:v1";
+const ROBOTS_TXT = [
+  "User-agent: *",
+  "Disallow: /admin",
+  "Disallow: /assets/",
+  "Disallow: /*.js$",
+  "Disallow: /*.css$",
+  ""
+].join("\n");
 const MAX_TEXT_LENGTH = 80;
 const MAX_URL_LENGTH = 2048;
 const MAX_JSON_BODY_BYTES = 1572864;
@@ -62,6 +70,15 @@ export default {
     const url = new URL(request.url);
 
     try {
+      if (url.pathname === "/robots.txt") {
+        return withSecurityHeaders(new Response(ROBOTS_TXT, {
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "public, max-age=3600"
+          }
+        }), request);
+      }
+
       if (!url.pathname.startsWith("/api/")) {
         return assetFallback(request, env);
       }
@@ -120,11 +137,11 @@ function matchRoute(method, pathname) {
 async function assetFallback(request, env) {
   const response = await env.ASSETS.fetch(request);
   if (response.status !== 404 || !["GET", "HEAD"].includes(request.method)) {
-    return withSecurityHeaders(response);
+    return withSecurityHeaders(response, request);
   }
 
   const indexUrl = new URL("/index.html", request.url);
-  return withSecurityHeaders(await env.ASSETS.fetch(new Request(indexUrl, request)));
+  return withSecurityHeaders(await env.ASSETS.fetch(new Request(indexUrl, request)), request);
 }
 
 async function getPublicSite(_request, env, ctx) {
@@ -788,16 +805,26 @@ function json(data, status = 200, headers = {}) {
   }));
 }
 
-function withSecurityHeaders(response) {
+function withSecurityHeaders(response, request = null) {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(name, value);
+  }
+  if (request && shouldBlockIndexing(new URL(request.url).pathname)) {
+    headers.set("x-robots-tag", "noindex, nofollow, noarchive");
   }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers
   });
+}
+
+function shouldBlockIndexing(pathname) {
+  return pathname.startsWith("/admin")
+    || pathname.startsWith("/assets/")
+    || pathname.endsWith(".js")
+    || pathname.endsWith(".css");
 }
 
 function isMissingD1TableError(error) {

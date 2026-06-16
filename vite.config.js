@@ -5,7 +5,18 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "dist",
-    emptyOutDir: true
+    emptyOutDir: true,
+    minify: "esbuild",
+    sourcemap: false,
+    cssMinify: true,
+    reportCompressedSize: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/[hash].js",
+        chunkFileNames: "assets/[hash].js",
+        assetFileNames: "assets/[hash][extname]"
+      }
+    }
   },
   server: {
     proxy: {
