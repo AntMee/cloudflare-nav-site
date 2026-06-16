@@ -14,6 +14,19 @@ const DEFAULT_SETTINGS = {
   backgroundDataUrl: "",
   gradientPreset: "aurora"
 };
+const DEFAULT_CATEGORIES = [
+  { id: 1, name: "常用网站", sortOrder: 10, isEnabled: true },
+  { id: 2, name: "AI工具", sortOrder: 20, isEnabled: true },
+  { id: 3, name: "社交娱乐", sortOrder: 30, isEnabled: true },
+  { id: 4, name: "办公学习", sortOrder: 40, isEnabled: true },
+  { id: 5, name: "购物电商", sortOrder: 50, isEnabled: true },
+  { id: 6, name: "综合其他", sortOrder: 60, isEnabled: true }
+];
+const DEFAULT_LINKS = [
+  { id: 1, categoryId: 1, title: "豆包", url: "https://www.doubao.com/", sortOrder: 10, isEnabled: true },
+  { id: 2, categoryId: 1, title: "Kimi", url: "https://kimi.moonshot.cn/", sortOrder: 20, isEnabled: true },
+  { id: 3, categoryId: 1, title: "GitHub", url: "https://github.com/", sortOrder: 30, isEnabled: true }
+];
 
 export default {
   async fetch(request, env, ctx) {
@@ -295,12 +308,27 @@ async function loadState(env) {
 }
 
 async function loadPublicSite(env) {
-  const [settings, categories, links] = await Promise.all([
-    loadSettings(env),
-    loadCategories(env, true),
-    loadLinks(env, true)
-  ]);
-  return { settings, categories, links };
+  try {
+    const [settings, categories, links] = await Promise.all([
+      loadSettings(env),
+      loadCategories(env, true),
+      loadLinks(env, true)
+    ]);
+    return { settings, categories, links };
+  } catch (error) {
+    if (isMissingD1TableError(error)) {
+      console.error(JSON.stringify({
+        level: "error",
+        message: "D1 schema is not initialized; returning fallback public site data",
+      }));
+      return {
+        settings: { ...DEFAULT_SETTINGS },
+        categories: DEFAULT_CATEGORIES,
+        links: DEFAULT_LINKS
+      };
+    }
+    throw error;
+  }
 }
 
 async function loadSettings(env) {
@@ -625,6 +653,11 @@ function json(data, status = 200, headers = {}) {
     status,
     headers: { ...JSON_HEADERS, ...headers }
   });
+}
+
+function isMissingD1TableError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /no such table|SQLITE_ERROR/i.test(message);
 }
 
 function httpError(message, status) {

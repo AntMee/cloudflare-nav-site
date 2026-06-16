@@ -9,7 +9,7 @@
     "build": "npm run build:app && npm run prepare:cloudflare",
     "check": "node --check src/worker/index.js && vite build",
     "prepare:cloudflare": "node scripts/prepare-cloudflare.mjs",
-    "deploy": "npm run build && wrangler d1 migrations apply nav_db --remote && wrangler deploy --keep-vars",
+    "deploy": "npm run build && wrangler deploy --keep-vars",
     "types": "wrangler types"
   },
   "dependencies": {

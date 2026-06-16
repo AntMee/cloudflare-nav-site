@@ -38,6 +38,7 @@ npm run prepare:cloudflare
 - 查找或创建 D1 数据库，默认名称 `nav_db`
 - 查找或创建 KV namespace，默认名称 `cloudflare_nav_cache`
 - 把真实 `database_id` 和 KV `id` 写回 `wrangler.jsonc`
+- 对远程 D1 执行 migration，确保线上数据表存在
 
 可以用环境变量覆盖资源名：
 
@@ -85,12 +86,11 @@ npm run deploy
 该脚本会依次执行：
 
 1. `npm run build`
-2. `wrangler d1 migrations apply nav_db --remote`
-3. `wrangler deploy --keep-vars`
+2. `wrangler deploy --keep-vars`
 
 如果使用 GitHub/Cloudflare 自动部署，构建环境需要有权限运行 Wrangler 并访问你的 Cloudflare 账号。
 
-如果平台的 Deploy command 固定为 `npx wrangler deploy`，也可以正常工作，但 Build command 必须是 `npm run build`，因为 D1/KV 自动创建已经挂在 build 阶段。
+如果平台的 Deploy command 固定为 `npx wrangler deploy`，也可以正常工作，但 Build command 必须是 `npm run build`，因为 D1/KV 自动创建和 D1 migration 已经挂在 build 阶段。
 
 ## JSON 备份
 

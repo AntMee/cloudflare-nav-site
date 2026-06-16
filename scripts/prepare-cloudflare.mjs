@@ -8,6 +8,7 @@ const d1Id = ensureD1(d1Name);
 const kvId = ensureKV(kvName);
 
 updateWranglerConfig(d1Name, d1Id, kvId);
+applyD1Migrations(d1Name);
 
 console.log(`D1 database: ${d1Name} (${d1Id})`);
 console.log(`KV namespace: ${kvName} (${kvId})`);
@@ -66,6 +67,10 @@ function updateWranglerConfig(databaseName, databaseId, kvId) {
   );
 
   writeFileSync(path, content);
+}
+
+function applyD1Migrations(databaseName) {
+  runWrangler(["d1", "migrations", "apply", databaseName, "--remote"]);
 }
 
 function runWrangler(args) {
