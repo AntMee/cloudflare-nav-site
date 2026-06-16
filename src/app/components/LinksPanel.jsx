@@ -26,7 +26,7 @@ function toPayload(form) {
   };
 }
 
-export default function LinksPanel({ categories, links, onReload }) {
+export default function LinksPanel({ categories, links, onConfirm, onReload }) {
   const categoryMap = useMemo(
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories]
@@ -79,7 +79,7 @@ export default function LinksPanel({ categories, links, onReload }) {
   }
 
   async function handleDelete(link) {
-    if (!window.confirm(`确认删除链接「${link.title}」？`)) return;
+    if (!(await onConfirm(`确认删除链接「${link.title}」？`, "删除链接"))) return;
     try {
       setSaving(true);
       setError("");

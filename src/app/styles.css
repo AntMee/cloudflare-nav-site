@@ -679,6 +679,46 @@ a {
   opacity: 0.5;
 }
 
+.admin-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.admin-dialog {
+  width: min(100%, 420px);
+  padding: 22px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.admin-dialog h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 1.08rem;
+  line-height: 1.2;
+}
+
+.admin-dialog p {
+  margin: 14px 0 0;
+  color: #334155;
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.admin-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
 @media (min-width: 1180px) {
   .link-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));

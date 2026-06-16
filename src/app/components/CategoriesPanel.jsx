@@ -22,7 +22,7 @@ function toPayload(form) {
   };
 }
 
-export default function CategoriesPanel({ categories, onReload }) {
+export default function CategoriesPanel({ categories, onConfirm, onReload }) {
   const sortedCategories = useMemo(() => sortByOrder(categories), [categories]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState("");
@@ -69,7 +69,7 @@ export default function CategoriesPanel({ categories, onReload }) {
   }
 
   async function handleDelete(category) {
-    if (!window.confirm(`确认删除分类「${category.name}」？`)) return;
+    if (!(await onConfirm(`确认删除分类「${category.name}」？`, "删除分类"))) return;
     try {
       setSaving(true);
       setError("");

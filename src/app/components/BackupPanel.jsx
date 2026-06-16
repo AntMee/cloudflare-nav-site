@@ -32,7 +32,7 @@ function readJsonFile(file) {
   });
 }
 
-export default function BackupPanel({ onReload }) {
+export default function BackupPanel({ onConfirm, onReload }) {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -60,7 +60,7 @@ export default function BackupPanel({ onReload }) {
       setError("");
       setStatus("");
       const backup = await readJsonFile(file);
-      if (!window.confirm("导入会覆盖当前后台数据，确认继续？")) return;
+      if (!(await onConfirm("导入会覆盖当前后台数据，确认继续？", "导入备份"))) return;
       await importBackup(backup);
       setStatus("导入完成");
       await onReload("备份已导入");

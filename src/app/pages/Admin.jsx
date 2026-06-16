@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAdminSession, getAdminState, logoutAdmin } from "../api.js";
 import BackupPanel from "../components/BackupPanel.jsx";
 import CategoriesPanel from "../components/CategoriesPanel.jsx";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import DashboardPanel from "../components/DashboardPanel.jsx";
 import LinksPanel from "../components/LinksPanel.jsx";
 import LoginPanel from "../components/LoginPanel.jsx";
@@ -23,6 +24,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [confirmState, setConfirmState] = useState(null);
 
   const loadState = useCallback(async (message = "") => {
     try {
@@ -97,16 +99,32 @@ export default function Admin() {
     }
   }
 
+  const confirmAction = useCallback((message, title = "确认操作") => {
+    return new Promise((resolve) => {
+      setConfirmState({
+        message,
+        title,
+        resolve
+      });
+    });
+  }, []);
+
+  function closeConfirm(confirmed) {
+    if (!confirmState) return;
+    confirmState.resolve(confirmed);
+    setConfirmState(null);
+  }
+
   const panel = useMemo(() => {
     const state = adminState || { settings: {}, categories: [], links: [] };
     const reload = (message) => loadState(message);
 
     if (activeTab === "links") {
-      return <LinksPanel categories={state.categories} links={state.links} onReload={reload} />;
+      return <LinksPanel categories={state.categories} links={state.links} onConfirm={confirmAction} onReload={reload} />;
     }
 
     if (activeTab === "categories") {
-      return <CategoriesPanel categories={state.categories} onReload={reload} />;
+      return <CategoriesPanel categories={state.categories} onConfirm={confirmAction} onReload={reload} />;
     }
 
     if (activeTab === "settings") {
@@ -114,7 +132,7 @@ export default function Admin() {
     }
 
     if (activeTab === "backup") {
-      return <BackupPanel onReload={reload} />;
+      return <BackupPanel onConfirm={confirmAction} onReload={reload} />;
     }
 
     return (
@@ -124,7 +142,7 @@ export default function Admin() {
         links={state.links}
       />
     );
-  }, [activeTab, adminState, loadState]);
+  }, [activeTab, adminState, confirmAction, loadState]);
 
   if (!sessionChecked && loading) {
     return (
@@ -183,6 +201,14 @@ export default function Admin() {
         {status ? <p className="admin-alert admin-alert--success">{status}</p> : null}
         {panel}
       </section>
+      {confirmState ? (
+        <ConfirmDialog
+          message={confirmState.message}
+          title={confirmState.title}
+          onCancel={() => closeConfirm(false)}
+          onConfirm={() => closeConfirm(true)}
+        />
+      ) : null}
     </main>
   );
 }
