@@ -29,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_categories_public ON categories(is_enabled, sort_
 CREATE INDEX IF NOT EXISTS idx_links_public ON links(is_enabled, category_id, sort_order, id);
 
 INSERT INTO settings (key, value) VALUES
-  ('site', '{"title":"CloudNav","backgroundMode":"gradient","backgroundUrl":"","backgroundDataUrl":"","gradientPreset":"aurora"}');
+  ('site', '{"title":"CloudNav","backgroundMode":"gradient","backgroundUrl":"","backgroundDataUrl":"","backgroundBlur":0,"gradientPreset":"aurora"}');
 
 INSERT INTO categories (name, sort_order, is_enabled) VALUES
   ('常用网站', 10, 1),

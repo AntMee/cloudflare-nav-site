@@ -46,6 +46,7 @@ export default function SettingsPanel({ settings, onReload }) {
     backgroundMode: "gradient",
     backgroundUrl: "",
     backgroundDataUrl: "",
+    backgroundBlur: 0,
     gradientPreset: "aurora"
   });
   const [saving, setSaving] = useState(false);
@@ -58,9 +59,18 @@ export default function SettingsPanel({ settings, onReload }) {
       backgroundMode: settings.backgroundMode || "gradient",
       backgroundUrl: settings.backgroundUrl || "",
       backgroundDataUrl: settings.backgroundDataUrl || "",
+      backgroundBlur: settings.backgroundBlur ?? 0,
       gradientPreset: settings.gradientPreset || "aurora"
     });
   }, [settings]);
+
+  function setBackgroundBlur(value) {
+    const number = Number(value);
+    const backgroundBlur = Number.isFinite(number)
+      ? Math.min(100, Math.max(0, Math.round(number)))
+      : 0;
+    setForm((current) => ({ ...current, backgroundBlur }));
+  }
 
   async function handleUpload(event) {
     const file = event.target.files?.[0];
@@ -100,6 +110,7 @@ export default function SettingsPanel({ settings, onReload }) {
         backgroundMode: form.backgroundMode,
         backgroundUrl: form.backgroundUrl.trim(),
         backgroundDataUrl: form.backgroundDataUrl,
+        backgroundBlur: form.backgroundBlur,
         gradientPreset: form.gradientPreset
       });
       await onReload("站点设置已保存");
@@ -151,6 +162,26 @@ export default function SettingsPanel({ settings, onReload }) {
               <option key={preset.value} value={preset.value}>{preset.label}</option>
             ))}
           </select>
+        </label>
+        <label className="admin-field">
+          <span>背景虚化：{form.backgroundBlur}%</span>
+          <input
+            max="100"
+            min="0"
+            type="range"
+            value={form.backgroundBlur}
+            onChange={(event) => setBackgroundBlur(event.target.value)}
+          />
+        </label>
+        <label className="admin-field">
+          <span>虚化百分比</span>
+          <input
+            max="100"
+            min="0"
+            type="number"
+            value={form.backgroundBlur}
+            onChange={(event) => setBackgroundBlur(event.target.value)}
+          />
         </label>
         <label className="admin-field">
           <span>上传背景图</span>

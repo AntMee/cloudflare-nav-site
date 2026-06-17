@@ -47,6 +47,7 @@ const DEFAULT_SETTINGS = {
   backgroundMode: "gradient",
   backgroundUrl: "",
   backgroundDataUrl: "",
+  backgroundBlur: 0,
   gradientPreset: "aurora"
 };
 const GRADIENT_PRESETS = new Set(["aurora", "sunset", "ocean", "forest", "dusk"]);
@@ -514,12 +515,14 @@ function normalizeSettingsPayload(payload) {
   if (!GRADIENT_PRESETS.has(gradientPreset)) {
     throw httpError("Invalid gradientPreset", 400);
   }
+  const backgroundBlur = cleanPercent(payload.backgroundBlur ?? payload.background_blur, DEFAULT_SETTINGS.backgroundBlur);
 
   return {
     title: cleanText(payload.title, MAX_TEXT_LENGTH) || DEFAULT_SETTINGS.title,
     backgroundMode,
     backgroundUrl,
     backgroundDataUrl,
+    backgroundBlur,
     gradientPreset
   };
 }
@@ -772,6 +775,12 @@ function cleanInteger(value, fallback) {
   return number;
 }
 
+function cleanPercent(value, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(100, Math.max(0, Math.round(number)));
+}
+
 function cleanBoolean(value) {
   if (value === false || value === 0 || value === "0" || value === "false") return 0;
   return 1;
@@ -837,3 +846,5 @@ function httpError(message, status) {
   error.status = status;
   return error;
 }
+
+export { normalizeSettingsPayload };

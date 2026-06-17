@@ -7,19 +7,30 @@ const DEFAULT_SETTINGS = {
   backgroundMode: "gradient",
   backgroundUrl: "",
   backgroundDataUrl: "",
+  backgroundBlur: 0,
   gradientPreset: "aurora"
 };
 
+function clampPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.min(100, Math.max(0, Math.round(number)));
+}
+
 function getBackgroundStyle(settings) {
+  const style = {
+    "--background-blur": `${Math.round(clampPercent(settings.backgroundBlur) * 0.28)}px`
+  };
+
   if (settings.backgroundMode === "upload" && settings.backgroundDataUrl) {
-    return { "--background-image": `url("${settings.backgroundDataUrl}")` };
+    return { ...style, "--background-image": `url("${settings.backgroundDataUrl}")` };
   }
 
   if (settings.backgroundMode === "url" && settings.backgroundUrl) {
-    return { "--background-image": `url("${settings.backgroundUrl}")` };
+    return { ...style, "--background-image": `url("${settings.backgroundUrl}")` };
   }
 
-  return {};
+  return style;
 }
 
 function getBackgroundClass(settings) {
@@ -119,6 +130,7 @@ export default function Home({ onNavigate }) {
 
   return (
     <main className={`public-home ${backgroundClass}`} style={backgroundStyle}>
+      <span className="public-home__background" aria-hidden="true" />
       <section className="nav-panel" aria-busy={loading}>
         {panelContent}
       </section>
