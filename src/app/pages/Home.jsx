@@ -19,7 +19,7 @@ function clampPercent(value) {
 
 function getBackgroundStyle(settings) {
   const style = {
-    "--background-blur": `${Math.round(clampPercent(settings.backgroundBlur) * 0.28)}px`
+    "--content-blur": `${Math.round(clampPercent(settings.backgroundBlur) * 0.24)}px`
   };
 
   if (settings.backgroundMode === "upload" && settings.backgroundDataUrl) {
