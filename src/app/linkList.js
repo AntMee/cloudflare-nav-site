@@ -38,3 +38,7 @@ export function paginateItems(items, page, pageSize) {
     pageCount
   };
 }
+
+export function findSelectedGroup(groups, selectedId) {
+  return groups.find((group) => String(group.id) === String(selectedId)) || groups[0] || null;
+}

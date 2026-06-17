@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { groupLinksByCategory, paginateItems } from "../src/app/linkList.js";
+import { findSelectedGroup, groupLinksByCategory, paginateItems } from "../src/app/linkList.js";
 
 test("groups links by category order and keeps uncategorized links last", () => {
   const categories = [
@@ -26,4 +26,15 @@ test("paginates long category link lists", () => {
   assert.deepEqual(paginateItems(items, 3, 5).items.map((item) => item.id), [11, 12, 13]);
   assert.equal(paginateItems(items, 99, 5).page, 3);
   assert.equal(paginateItems(items, 1, 5).pageCount, 3);
+});
+
+test("selects requested group or falls back to the first available group", () => {
+  const groups = [
+    { id: 1, name: "A", links: [] },
+    { id: 2, name: "B", links: [] }
+  ];
+
+  assert.equal(findSelectedGroup(groups, "2").name, "B");
+  assert.equal(findSelectedGroup(groups, "missing").name, "A");
+  assert.equal(findSelectedGroup([], "1"), null);
 });

@@ -665,6 +665,38 @@ a {
   overflow-wrap: anywhere;
 }
 
+.admin-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.admin-card__title-row h3 {
+  margin: 0;
+}
+
+.admin-link-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.admin-link-filter select {
+  min-width: 150px;
+  min-height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 34px 0 10px;
+  color: #111827;
+  background: #ffffff;
+  font: inherit;
+}
+
 .admin-link-groups {
   display: grid;
   gap: 18px;
