@@ -7,6 +7,7 @@ import DashboardPanel from "../components/DashboardPanel.jsx";
 import LinksPanel from "../components/LinksPanel.jsx";
 import LoginPanel from "../components/LoginPanel.jsx";
 import SettingsPanel from "../components/SettingsPanel.jsx";
+import { resolveSiteTitle } from "../siteTitle.js";
 
 const TABS = [
   { id: "dashboard", label: "概览" },
@@ -77,6 +78,10 @@ export default function Admin() {
       isMounted = false;
     };
   }, [loadState]);
+
+  useEffect(() => {
+    document.title = `${resolveSiteTitle(adminState?.settings?.title)} - 管理后台`;
+  }, [adminState?.settings?.title]);
 
   async function handleLogin() {
     setAuthenticated(true);

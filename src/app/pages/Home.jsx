@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getPublicSite } from "../api.js";
 import CategoryTabs from "../components/CategoryTabs.jsx";
 import LinkCard from "../components/LinkCard.jsx";
+import { resolveSiteTitle } from "../siteTitle.js";
 
 const DEFAULT_SETTINGS = {
   backgroundMode: "gradient",
@@ -98,6 +99,10 @@ export default function Home({ onNavigate }) {
   const activeLinks = selectedCategory ? linksByCategory.get(selectedCategory.id) || [] : [];
   const backgroundClass = getBackgroundClass(settings);
   const backgroundStyle = getBackgroundStyle(settings);
+
+  useEffect(() => {
+    document.title = resolveSiteTitle(settings.title);
+  }, [settings.title]);
 
   let panelContent;
 
