@@ -166,8 +166,10 @@ export default function SettingsPanel({ settings, onReload }) {
         <label className="admin-field">
           <span>背景虚化：{form.backgroundBlur}%</span>
           <input
+            className="admin-range"
             max="100"
             min="0"
+            style={{ "--range-progress": `${form.backgroundBlur}%` }}
             type="range"
             value={form.backgroundBlur}
             onChange={(event) => setBackgroundBlur(event.target.value)}
