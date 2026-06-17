@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { createLink, deleteLink, updateLink } from "../api.js";
+import { groupLinksByCategory, paginateItems, sortByOrder } from "../linkList.js";
 
+const LINKS_PAGE_SIZE = 8;
 const EMPTY_FORM = {
   title: "",
   url: "",
@@ -8,13 +10,6 @@ const EMPTY_FORM = {
   sortOrder: 0,
   isEnabled: true
 };
-
-function sortByOrder(items) {
-  return [...items].sort((left, right) => {
-    const orderDiff = Number(left.sortOrder) - Number(right.sortOrder);
-    return orderDiff || String(left.title).localeCompare(String(right.title));
-  });
-}
 
 function toPayload(form) {
   return {
@@ -31,7 +26,8 @@ export default function LinksPanel({ categories, links, onConfirm, onReload }) {
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories]
   );
-  const sortedLinks = useMemo(() => sortByOrder(links), [links]);
+  const groupedLinks = useMemo(() => groupLinksByCategory(categories, links), [categories, links]);
+  const [pages, setPages] = useState({});
   const [form, setForm] = useState({ ...EMPTY_FORM, categoryId: categories[0]?.id || "" });
   const [editingId, setEditingId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -118,6 +114,13 @@ export default function LinksPanel({ categories, links, onConfirm, onReload }) {
     return Boolean(group[index + direction]);
   }
 
+  function setGroupPage(groupId, page) {
+    setPages((current) => ({
+      ...current,
+      [groupId]: page
+    }));
+  }
+
   return (
     <section className="admin-panel admin-panel--split">
       <form className="admin-card admin-form" onSubmit={handleSubmit}>
@@ -183,46 +186,80 @@ export default function LinksPanel({ categories, links, onConfirm, onReload }) {
       </form>
       <div className="admin-card">
         <h3>链接列表</h3>
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>站名</th>
-                <th>URL</th>
-                <th>分类</th>
-                <th>排序</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedLinks.map((link) => (
-                <tr key={link.id}>
-                  <td>{link.title}</td>
-                  <td>
-                    <a href={link.url} target="_blank" rel="noreferrer">{link.url}</a>
-                  </td>
-                  <td>{categoryMap.get(link.categoryId) || "未分类"}</td>
-                  <td>{link.sortOrder}</td>
-                  <td>{link.isEnabled ? "启用" : "停用"}</td>
-                  <td>
-                    <div className="admin-row-actions">
-                      <button type="button" onClick={() => startEdit(link)}>编辑</button>
-                      <button disabled={!canMove(link, -1) || saving} type="button" onClick={() => moveLink(link, -1)}>上移</button>
-                      <button disabled={!canMove(link, 1) || saving} type="button" onClick={() => moveLink(link, 1)}>下移</button>
-                      <button type="button" onClick={() => handleDelete(link)}>删除</button>
+        {groupedLinks.length ? (
+          <div className="admin-link-groups">
+            {groupedLinks.map((group) => {
+              const pagination = paginateItems(group.links, pages[group.id] || 1, LINKS_PAGE_SIZE);
+
+              return (
+                <section className="admin-link-group" key={group.id}>
+                  <header className="admin-link-group__header">
+                    <div>
+                      <h4>{group.name}</h4>
+                      <p className="admin-muted">{group.links.length} 个链接</p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {!sortedLinks.length ? (
-                <tr>
-                  <td colSpan="6">暂无链接</td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+                    {pagination.pageCount > 1 ? (
+                      <div className="admin-pagination" aria-label={`${group.name} 分页`}>
+                        <button
+                          disabled={pagination.page <= 1}
+                          type="button"
+                          onClick={() => setGroupPage(group.id, pagination.page - 1)}
+                        >
+                          上一页
+                        </button>
+                        <span>{pagination.page} / {pagination.pageCount}</span>
+                        <button
+                          disabled={pagination.page >= pagination.pageCount}
+                          type="button"
+                          onClick={() => setGroupPage(group.id, pagination.page + 1)}
+                        >
+                          下一页
+                        </button>
+                      </div>
+                    ) : null}
+                  </header>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>站名</th>
+                          <th>URL</th>
+                          <th>分类</th>
+                          <th>排序</th>
+                          <th>状态</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagination.items.map((link) => (
+                          <tr key={link.id}>
+                            <td>{link.title}</td>
+                            <td>
+                              <a href={link.url} target="_blank" rel="noreferrer">{link.url}</a>
+                            </td>
+                            <td>{categoryMap.get(link.categoryId) || "未分类"}</td>
+                            <td>{link.sortOrder}</td>
+                            <td>{link.isEnabled ? "启用" : "停用"}</td>
+                            <td>
+                              <div className="admin-row-actions">
+                                <button type="button" onClick={() => startEdit(link)}>编辑</button>
+                                <button disabled={!canMove(link, -1) || saving} type="button" onClick={() => moveLink(link, -1)}>上移</button>
+                                <button disabled={!canMove(link, 1) || saving} type="button" onClick={() => moveLink(link, 1)}>下移</button>
+                                <button type="button" onClick={() => handleDelete(link)}>删除</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="admin-muted">暂无链接</p>
+        )}
       </div>
     </section>
   );
