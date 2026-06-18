@@ -215,25 +215,6 @@ export default function LinksPanel({ categories, links, onConfirm, onReload }) {
                 <h4>{selectedGroup.name}</h4>
                 <p className="admin-muted">{selectedGroup.links.length} 个链接</p>
               </div>
-              {pagination.pageCount > 1 ? (
-                <div className="admin-pagination" aria-label={`${selectedGroup.name} 分页`}>
-                  <button
-                    disabled={pagination.page <= 1}
-                    type="button"
-                    onClick={() => setGroupPage(selectedGroup.id, pagination.page - 1)}
-                  >
-                    上一页
-                  </button>
-                  <span>{pagination.page} / {pagination.pageCount}</span>
-                  <button
-                    disabled={pagination.page >= pagination.pageCount}
-                    type="button"
-                    onClick={() => setGroupPage(selectedGroup.id, pagination.page + 1)}
-                  >
-                    下一页
-                  </button>
-                </div>
-              ) : null}
             </header>
             <div className="admin-table-wrap">
               <table className="admin-table">
@@ -270,6 +251,25 @@ export default function LinksPanel({ categories, links, onConfirm, onReload }) {
                 </tbody>
               </table>
             </div>
+            {pagination.pageCount > 1 ? (
+              <div className="admin-pagination" aria-label={`${selectedGroup.name} 分页`}>
+                <button
+                  disabled={pagination.page <= 1}
+                  type="button"
+                  onClick={() => setGroupPage(selectedGroup.id, pagination.page - 1)}
+                >
+                  上一页
+                </button>
+                <span>{pagination.page} / {pagination.pageCount}</span>
+                <button
+                  disabled={pagination.page >= pagination.pageCount}
+                  type="button"
+                  onClick={() => setGroupPage(selectedGroup.id, pagination.page + 1)}
+                >
+                  下一页
+                </button>
+              </div>
+            ) : null}
           </section>
         ) : (
           <p className="admin-muted">暂无链接</p>
