@@ -76,7 +76,7 @@ export default function Home({ onNavigate }) {
         setSelectedCategoryId(nextSite.categories?.[0]?.id ?? null);
       } catch (loadError) {
         if (!isMounted) return;
-        setError(loadError.message || "站点载入失败");
+        setError(loadError.message || "站点加载失败");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -90,6 +90,7 @@ export default function Home({ onNavigate }) {
   }, []);
 
   const settings = { ...DEFAULT_SETTINGS, ...(site?.settings || {}) };
+  const siteTitle = resolveSiteTitle(settings.title);
   const categories = site?.categories || [];
   const linksByCategory = useMemo(
     () => groupLinksByCategory(site?.links || []),
@@ -101,13 +102,13 @@ export default function Home({ onNavigate }) {
   const backgroundStyle = getBackgroundStyle(settings);
 
   useEffect(() => {
-    document.title = resolveSiteTitle(settings.title);
-  }, [settings.title]);
+    document.title = siteTitle;
+  }, [siteTitle]);
 
   let panelContent;
 
   if (loading) {
-    panelContent = <p className="public-empty">正在载入导航...</p>;
+    panelContent = <p className="public-empty">正在加载导航...</p>;
   } else if (error) {
     panelContent = <p className="public-empty public-empty--error">{error}</p>;
   } else if (!categories.length) {
@@ -115,6 +116,9 @@ export default function Home({ onNavigate }) {
   } else {
     panelContent = (
       <>
+        <header className="public-header">
+          <h1>{siteTitle}</h1>
+        </header>
         <CategoryTabs
           categories={categories}
           selectedId={selectedCategoryId}

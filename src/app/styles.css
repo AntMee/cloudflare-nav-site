@@ -122,17 +122,29 @@ a {
   overflow: auto;
   padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.46);
-  border-radius: 30px;
-  background: rgba(255, 255, 255, 0.22);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.3);
   box-shadow:
     0 28px 70px rgba(8, 20, 38, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.64);
   backdrop-filter: blur(var(--content-blur)) saturate(150%);
 }
 
+.public-header {
+  margin-bottom: 18px;
+}
+
+.public-header h1 {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.9);
+  font-size: clamp(1.18rem, 2.4vw, 1.6rem);
+  font-weight: 850;
+  line-height: 1.15;
+}
+
 .category-tabs {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   overflow-x: auto;
   padding: 0 2px 18px;
   scrollbar-width: none;
@@ -145,11 +157,11 @@ a {
 .category-tab {
   flex: 0 0 auto;
   min-height: 42px;
-  padding: 0 20px;
+  padding: 0 18px;
   border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 999px;
-  color: rgba(33, 46, 64, 0.72);
-  background: rgba(255, 255, 255, 0.32);
+  color: rgba(33, 46, 64, 0.66);
+  background: rgba(255, 255, 255, 0.26);
   box-shadow: 0 10px 22px rgba(24, 40, 64, 0.08);
   backdrop-filter: blur(var(--content-blur)) saturate(140%);
   cursor: pointer;
@@ -167,7 +179,7 @@ a {
 
 .category-tab--selected {
   color: #132033;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.78);
   border-color: rgba(255, 255, 255, 0.78);
   box-shadow: 0 12px 28px rgba(20, 35, 58, 0.14);
 }
@@ -187,9 +199,9 @@ a {
   gap: 16px;
   padding: 20px 14px;
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 26px;
+  border-radius: 20px;
   color: #1a2638;
-  background: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.48);
   box-shadow:
     0 16px 34px rgba(20, 38, 60, 0.11),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
@@ -200,12 +212,19 @@ a {
 
 .link-card:hover,
 .link-card:focus-visible {
-  background: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.68);
   box-shadow:
     0 20px 38px rgba(20, 38, 60, 0.17),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   outline: none;
   transform: translateY(-2px);
+}
+
+.link-card:focus-visible {
+  box-shadow:
+    0 20px 38px rgba(20, 38, 60, 0.17),
+    0 0 0 3px rgba(37, 99, 235, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .link-card__icon {
@@ -896,7 +915,7 @@ a {
   .nav-panel {
     max-height: calc(100vh - 72px);
     padding: 22px;
-    border-radius: 26px;
+    border-radius: 22px;
   }
 
   .link-grid {
@@ -940,8 +959,12 @@ a {
 
   .nav-panel {
     max-height: none;
-    padding: 18px;
-    border-radius: 24px;
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .public-header {
+    margin-bottom: 14px;
   }
 
   .category-tabs {
@@ -962,16 +985,16 @@ a {
   }
 
   .link-card {
-    min-height: 126px;
-    gap: 12px;
-    padding: 16px 10px;
-    border-radius: 22px;
+    min-height: 116px;
+    gap: 10px;
+    padding: 14px 10px;
+    border-radius: 18px;
   }
 
   .link-card__icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
   }
 
   .link-card__title {
