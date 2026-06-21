@@ -2,7 +2,8 @@ import { useState } from "react";
 
 function getFaviconUrl(url) {
   try {
-    return `${new URL(url).origin}/favicon.ico`;
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
   } catch {
     return "";
   }
